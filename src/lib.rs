@@ -3,15 +3,65 @@ use std::{
     collections::{BinaryHeap, HashMap},
     rc::Rc,
 };
-use thiserror::Error;
 
-#[derive(Debug, Error)]
-#[error("the character cannot be found in the dictionary")]
-pub struct CharDNEinDict;
+pub fn frequency(n: &str) -> HashMap<char, i32> {
+    let mut output: HashMap<char, i32> = HashMap::new();
+    n.chars().for_each(|c| {
+        let new = if let Some(o) = output.get(&c) {
+            o + 1i32
+        } else {
+            1i32
+        };
+        output.insert(c, new);
+    });
+    output
+}
 
 pub struct Codec(pub HashMap<char, Vec<u8>>);
 
 impl Codec {
+    pub fn new(s: &str) -> Self {
+        fn map_to_heap(map: HashMap<char, i32>) -> BinaryHeap<Rc<Tree>> {
+            let mut heap = BinaryHeap::new();
+            map.into_iter().for_each(|(l, c)| {
+                let t = Tree::new(l, c);
+                heap.push(t);
+            });
+            heap
+        }
+        fn heap_to_tree(mut heap: BinaryHeap<Rc<Tree>>) -> Rc<Tree> {
+            while heap.len() > 1 {
+                let (t1, t2) = (heap.pop().unwrap(), heap.pop().unwrap());
+                heap.push(Tree::merge(t1, t2));
+            }
+            heap.pop().unwrap()
+        }
+        fn tree_to_codes(
+            root: &Option<Rc<Tree>>,
+            prefix: Vec<u8>,
+            mut map: HashMap<char, Vec<u8>>,
+        ) -> HashMap<char, Vec<u8>> {
+            if let Some(ref tree) = *root {
+                match tree.value {
+                    Some(t) => {
+                        map.insert(t, prefix);
+                    }
+                    None => {
+                        let (mut prefix_l, mut prefix_r) = (prefix.clone(), prefix);
+                        prefix_l.push(1u8);
+                        let map = tree_to_codes(&tree.left, prefix_l, map);
+                        prefix_r.push(0u8);
+                        return tree_to_codes(&tree.right, prefix_r, map);
+                    }
+                }
+            }
+            map
+        }
+        let f_map = frequency(s);
+        let heap = map_to_heap(f_map);
+        let tree = heap_to_tree(heap);
+        Self(tree_to_codes(&Some(tree), Vec::new(), HashMap::new()))
+    }
     pub fn encode(&self, data: &str) -> Result<Vec<u8>, CharDNEinDict> {
         let mut nbits = 0;
         data.chars()
@@ -106,61 +156,11 @@ impl Tree {
     }
 }
 
-pub fn frequency(n: &str) -> HashMap<char, i32> {
-    let mut output: HashMap<char, i32> = HashMap::new();
-    n.chars().for_each(|c| {
-        let new = if let Some(o) = output.get(&c) {
-            o + 1i32
-        } else {
-            1i32
-        };
-        output.insert(c, new);
-    });
-    output
-}
+use thiserror::Error;
 
-pub fn huffman_codes(data: &str) -> HashMap<char, Vec<u8>> {
-    fn map_to_heap(map: HashMap<char, i32>) -> BinaryHeap<Rc<Tree>> {
-        let mut heap = BinaryHeap::new();
-        map.into_iter().for_each(|(l, c)| {
-            let t = Tree::new(l, c);
-            heap.push(t);
-        });
-        heap
-    }
-    fn heap_to_tree(mut heap: BinaryHeap<Rc<Tree>>) -> Rc<Tree> {
-        while heap.len() > 1 {
-            let (t1, t2) = (heap.pop().unwrap(), heap.pop().unwrap());
-            heap.push(Tree::merge(t1, t2));
-        }
-        heap.pop().unwrap()
-    }
-    fn tree_to_codes(
-        root: &Option<Rc<Tree>>,
-        prefix: Vec<u8>,
-        mut map: HashMap<char, Vec<u8>>,
-    ) -> HashMap<char, Vec<u8>> {
-        if let Some(ref tree) = *root {
-            match tree.value {
-                Some(t) => {
-                    map.insert(t, prefix);
-                }
-                None => {
-                    let (mut prefix_l, mut prefix_r) = (prefix.clone(), prefix);
-                    prefix_l.push(1u8);
-                    let map = tree_to_codes(&tree.left, prefix_l, map);
-                    prefix_r.push(0u8);
-                    return tree_to_codes(&tree.right, prefix_r, map);
-                }
-            }
-        }
-        map
-    }
-    let f_map = frequency(data);
-    let heap = map_to_heap(f_map);
-    let tree = heap_to_tree(heap);
-    tree_to_codes(&Some(tree), Vec::new(), HashMap::new())
-}
+#[derive(Debug, Error)]
+#[error("the character cannot be found in the dictionary")]
+pub struct CharDNEinDict;
 
 #[cfg(test)]
 mod tests {
@@ -184,7 +184,7 @@ mod tests {
     fn decoding_works() {
         let a = "aaaabbbcccddddaaabababr";
         let a1 = "abracadabra";
-        let codec = Codec(huffman_codes(a));
+        let codec = Codec::new(a);
         let encoded = codec.encode(a1).unwrap();
         let decoded = codec.decode(encoded);
 
