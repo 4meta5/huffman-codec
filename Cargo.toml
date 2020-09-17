@@ -1,0 +1,9 @@
+[package]
+name = "huffman-codec"
+version = "0.1.0"
+authors = ["4meta5 <asinghchrony@protonmail.com>"]
+edition = "2018"
+description = "codec for huffman lossless compression"
+
+[dependencies]
+thiserror = "1.0.20"
