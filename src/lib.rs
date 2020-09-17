@@ -7,23 +7,23 @@ use thiserror::Error;
 
 #[derive(Debug, Error)]
 #[error("the character cannot be found in the dictionary")]
-pub struct CharacterDNEinDictionary;
+pub struct CharDNEinDict;
 
 pub struct Codec(pub HashMap<char, Vec<u8>>);
 
 impl Codec {
-    pub fn encode(&self, data: &str) -> Result<Vec<u8>, CharacterDNEinDictionary> {
+    pub fn encode(&self, data: &str) -> Result<Vec<u8>, CharDNEinDict> {
         let mut nbits = 0;
         data.chars()
-            .map(|c| -> Result<(), CharacterDNEinDictionary> {
+            .map(|c| -> Result<(), CharDNEinDict> {
                 if let Some(code) = self.0.get(&c) {
                     nbits += code.len();
                     Ok(())
                 } else {
-                    Err(CharacterDNEinDictionary)
+                    Err(CharDNEinDict)
                 }
             })
-            .collect::<Result<(), CharacterDNEinDictionary>>()?;
+            .collect::<Result<(), CharDNEinDict>>()?;
         let mut ret = Vec::<u8>::with_capacity(nbits);
         data.chars().for_each(|c| {
             let v = self
