@@ -1,11 +1,15 @@
-use std::{
-    cmp::Ordering,
-    collections::{BinaryHeap, HashMap},
+#![no_std]
+extern crate alloc;
+use alloc::{
+    collections::{binary_heap::BinaryHeap, BTreeMap},
     rc::Rc,
+    string::String,
+    vec::Vec,
 };
+use core::cmp::Ordering;
 
-pub fn frequency(n: &str) -> HashMap<char, i32> {
-    let mut output: HashMap<char, i32> = HashMap::new();
+pub fn frequency(n: &str) -> BTreeMap<char, i32> {
+    let mut output: BTreeMap<char, i32> = BTreeMap::new();
     n.chars().for_each(|c| {
         let new = if let Some(o) = output.get(&c) {
             o + 1i32
@@ -17,11 +21,11 @@ pub fn frequency(n: &str) -> HashMap<char, i32> {
     output
 }
 
-pub struct Codec(pub HashMap<char, Vec<u8>>);
+pub struct Codec(pub BTreeMap<char, Vec<u8>>);
 
 impl Codec {
     pub fn new(s: &str) -> Self {
-        fn map_to_heap(map: HashMap<char, i32>) -> BinaryHeap<Rc<Tree>> {
+        fn map_to_heap(map: BTreeMap<char, i32>) -> BinaryHeap<Rc<Tree>> {
             let mut heap = BinaryHeap::new();
             map.into_iter().for_each(|(l, c)| {
                 let t = Tree::new(l, c);
@@ -39,8 +43,8 @@ impl Codec {
         fn tree_to_codes(
             root: &Option<Rc<Tree>>,
             prefix: Vec<u8>,
-            mut map: HashMap<char, Vec<u8>>,
-        ) -> HashMap<char, Vec<u8>> {
+            mut map: BTreeMap<char, Vec<u8>>,
+        ) -> BTreeMap<char, Vec<u8>> {
             if let Some(ref tree) = *root {
                 match tree.value {
                     Some(t) => {
@@ -60,7 +64,7 @@ impl Codec {
         let f_map = frequency(s);
         let heap = map_to_heap(f_map);
         let tree = heap_to_tree(heap);
-        Self(tree_to_codes(&Some(tree), Vec::new(), HashMap::new()))
+        Self(tree_to_codes(&Some(tree), Vec::new(), BTreeMap::new()))
     }
     pub fn encode(&self, data: &str) -> Result<Vec<u8>, CharDNEinDict> {
         let mut nbits = 0;
@@ -85,8 +89,8 @@ impl Codec {
         Ok(ret)
     }
     pub fn decode(&self, data: Vec<u8>) -> String {
-        fn reverse(h: &HashMap<char, Vec<u8>>) -> HashMap<Vec<u8>, char> {
-            let mut ret = HashMap::new();
+        fn reverse(h: &BTreeMap<char, Vec<u8>>) -> BTreeMap<Vec<u8>, char> {
+            let mut ret = BTreeMap::new();
             h.iter().for_each(|(k, v)| {
                 ret.insert(v.clone(), *k);
             });
@@ -156,10 +160,7 @@ impl Tree {
     }
 }
 
-use thiserror::Error;
-
-#[derive(Debug, Error)]
-#[error("the character cannot be found in the dictionary")]
+#[derive(Debug)]
 pub struct CharDNEinDict;
 
 #[cfg(test)]
@@ -171,7 +172,7 @@ mod tests {
         let a = "aaaabbbcccddddabababa";
 
         let res_fn = frequency(a);
-        let mut res: HashMap<char, i32> = HashMap::new();
+        let mut res: BTreeMap<char, i32> = BTreeMap::new();
         res.insert('a', 8);
         res.insert('b', 6);
         res.insert('c', 3);
