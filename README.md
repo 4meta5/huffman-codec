@@ -1,6 +1,6 @@
 # Huffman Codes
 
-![Build](https://github.com/4meta5/huffman-codes/workflows/Build/badge.svg)
+![Build](https://github.com/4meta5/huffman-codec/workflows/Build/badge.svg)
 [![](https://meritbadge.herokuapp.com/huffman-codec)](https://crates.io/crates/huffman-codec)
 
 Lossless data compression via [Huffman Codes](https://en.wikipedia.org/wiki/Huffman_coding)
