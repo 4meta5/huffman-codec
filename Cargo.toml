@@ -3,6 +3,7 @@ name = "huffman-codec"
 version = "0.1.0"
 authors = ["4meta5 <asinghchrony@protonmail.com>"]
 edition = "2018"
+license = "Unlicense"
 description = "no_std codec for huffman lossless compression"
 
 [dependencies]
