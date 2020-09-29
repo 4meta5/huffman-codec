@@ -1,9 +1,10 @@
 [package]
 name = "huffman-codec"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["4meta5 <asinghchrony@protonmail.com>"]
 edition = "2018"
 license = "Unlicense"
-description = "no_std codec for huffman lossless compression"
+repository = "https://github.com/4meta5/huffman-codes"
+description = "no_std codec for lossless compression via huffman codes"
 
 [dependencies]
