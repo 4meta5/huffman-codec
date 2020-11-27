@@ -1,9 +1,63 @@
 # Huffman Codes
 
+Lossless data compression via [Huffman Codes](https://en.wikipedia.org/wiki/Huffman_coding)
+
+## Rust
+
 ![Build](https://github.com/4meta5/huffman-codec/workflows/Build/badge.svg)
 [![](https://meritbadge.herokuapp.com/huffman-codec)](https://crates.io/crates/huffman-codec)
 
-Lossless data compression via [Huffman Codes](https://en.wikipedia.org/wiki/Huffman_coding)
+~200 loc Rust with 0 dependencies, `no_std`
+
+## Prolog
+
+*All example queries are made from the [swish](https://www.swi-prolog.org/Download.html) REPL*
+
+```prolog
+(main)⚡ % swipl huffman.pl
+Welcome to SWI-Prolog (threaded, 64 bits, version 8.2.1)
+SWI-Prolog comes with ABSOLUTELY NO WARRANTY. This is free software.
+Please run ?- license. for legal details.
+For online help and background, visit https://www.swi-prolog.org
+For built-in help, use ?- help(Topic). or ?- apropos(Word).
+?- 
+```
+
+Example queries with output:
+```prolog
+?- make_code('How are you doing?',C),ncode('How are',C,R),write(R).
+[0,0,0,1,1,1,1,1,0,1,0,1,1,0,0,0,1,0,1,0,0,0,0,1,0,0]
+C = [[1, ?, [0, 0, 0, 0]], [1, 'H', [0, 0, 0, 1]], [1, a, [0, 0, 1|...]], [1, d, [0, 0|...]], [1, e, [0|...]], [1, g, [...|...]], [1, i|...], [1|...], [...|...]|...],
+R = [0, 0, 0, 1, 1, 1, 1, 1, 0|...] .
+
+?- make_code('How are you doing?',C),dcode([0,0,0,1,1,1,1,1,0,1,0,1,1,0,0,0,1,0,1,0,0,0,0,1,0,0],C,R).
+C = [[1, ?, [0, 0, 0, 0]], [1, 'H', [0, 0, 0, 1]], [1, a, [0, 0, 1|...]], [1, d, [0, 0|...]], [1, e, [0|...]], [1, g, [...|...]], [1, i|...], [1|...], [...|...]|...],
+R = "How are" .
+
+?- test.
+Character            Frequency          Code
+! :                  1                  00010
+c :                  1                  00011
+g :                  1                  00100
+l :                  1                  00101
+p :                  1                  00110
+r :                  1                  00111
+u :                  1                  01000
+x :                  1                  01001
+d :                  2                  11110
+f :                  2                  11111
+h :                  2                  0000
+i :                  3                  0101
+m :                  3                  0110
+o :                  3                  0111
+s :                  3                  1010
+a :                  4                  1011
+e :                  4                  1100
+n :                  4                  1101
+t :                  4                  1110
+  :                  7                  100
+true .
+```
 
 ### License
 
