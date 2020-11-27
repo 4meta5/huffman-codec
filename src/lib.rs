@@ -69,15 +69,14 @@ impl Codec {
     pub fn encode(&self, data: &str) -> Result<Vec<u8>, CharDNEinDict> {
         let mut nbits = 0;
         data.chars()
-            .map(|c| -> Result<(), CharDNEinDict> {
+            .try_for_each(|c| -> Result<(), CharDNEinDict> {
                 if let Some(code) = self.0.get(&c) {
                     nbits += code.len();
                     Ok(())
                 } else {
                     Err(CharDNEinDict)
                 }
-            })
-            .collect::<Result<(), CharDNEinDict>>()?;
+            })?;
         let mut ret = Vec::<u8>::with_capacity(nbits);
         data.chars().for_each(|c| {
             let v = self
