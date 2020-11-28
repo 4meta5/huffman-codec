@@ -21,6 +21,80 @@ pub fn frequency(n: &str) -> BTreeMap<char, i32> {
     output
 }
 
+use alloc::collections::btree_map::Iter;
+struct Dictionary {
+    /* currently a vec must be used because Option<Vec<u8>> doesnt impliment copy */
+    ascii: Vec<Option<Vec<u8>>>,
+    non_ascii: BTreeMap<char, Vec<u8>>,
+}
+
+impl Dictionary {
+    fn new() -> Self {
+        Self {
+            ascii: (0..128).map(|_| None).collect(),
+            non_ascii: Default::default(),
+        }
+    }
+    fn insert(&mut self, k: char, v: Vec<u8>) {
+        let c = k as usize;
+        if c < 128 {
+            unsafe {
+                *self.ascii.get_unchecked_mut(c) = Some(v);
+            }
+        } else {
+            self.non_ascii.insert(k, v);
+        }
+    }
+    fn get(&self, k: &char) -> Option<&Vec<u8>> {
+        let c = *k as usize;
+        if c < 128 {
+            unsafe { self.ascii.get_unchecked(c).as_ref() }
+        } else {
+            self.non_ascii.get(k)
+        }
+    }
+}
+
+impl Default for Dictionary {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+#[derive(Default)]
+struct DictionaryRev {
+    non_ascii: BTreeMap<Vec<u8>, char>,
+}
+
+impl DictionaryRev {
+    fn new() -> Self {
+        Default::default()
+    }
+    fn insert(&mut self, k: Vec<u8>, v: char) {
+        self.insert(k, v);
+    }
+    fn get(&self, k: &[u8]) -> Option<&char> {
+        self.get(k)
+    }
+}
+
+impl From<&Dictionary> for DictionaryRev {
+    fn from(d: &Dictionary) -> Self {
+        Self {
+            non_ascii: d
+                .ascii
+                .iter()
+                .enumerate()
+                .filter_map(|(index, x)| match x {
+                    Some(v) => Some((v.clone(), index as u8 as char)),
+                    None => None,
+                })
+                .chain(d.non_ascii.iter().map(|(k, v)| (v.clone(), *k)))
+                .collect(),
+        }
+    }
+}
+
 pub struct Codec(pub BTreeMap<char, Vec<u8>>);
 
 impl Codec {
