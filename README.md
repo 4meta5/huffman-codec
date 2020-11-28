@@ -7,7 +7,7 @@ Lossless data compression via [Huffman Codes](https://en.wikipedia.org/wiki/Huff
 ![Build](https://github.com/4meta5/huffman-codec/workflows/Build/badge.svg)
 [![](https://meritbadge.herokuapp.com/huffman-codec)](https://crates.io/crates/huffman-codec)
 
-~200 loc Rust with 0 dependencies, `no_std`
+~200 loc with no dependencies, `no_std`
 
 ## Prolog
 
