@@ -21,7 +21,6 @@ pub fn frequency(n: &str) -> BTreeMap<char, i32> {
     output
 }
 
-use alloc::collections::btree_map::Iter;
 struct Dictionary {
     /* currently a vec must be used because Option<Vec<u8>> doesnt impliment copy */
     ascii: Vec<Option<Vec<u8>>>,
@@ -71,10 +70,10 @@ impl DictionaryRev {
         Default::default()
     }
     fn insert(&mut self, k: Vec<u8>, v: char) {
-        self.insert(k, v);
+        self.non_ascii.insert(k, v);
     }
     fn get(&self, k: &[u8]) -> Option<&char> {
-        self.get(k)
+        self.non_ascii.get(k)
     }
 }
 
@@ -95,7 +94,7 @@ impl From<&Dictionary> for DictionaryRev {
     }
 }
 
-pub struct Codec(pub BTreeMap<char, Vec<u8>>);
+pub struct Codec(Dictionary);
 
 impl Codec {
     pub fn new(s: &str) -> Self {
@@ -117,8 +116,8 @@ impl Codec {
         fn tree_to_codes(
             root: &Option<Rc<Tree>>,
             prefix: Vec<u8>,
-            mut map: BTreeMap<char, Vec<u8>>,
-        ) -> BTreeMap<char, Vec<u8>> {
+            mut map: Dictionary,
+        ) -> Dictionary {
             if let Some(ref tree) = *root {
                 match tree.value {
                     Some(t) => {
@@ -138,7 +137,7 @@ impl Codec {
         let f_map = frequency(s);
         let heap = map_to_heap(f_map);
         let tree = heap_to_tree(heap);
-        Self(tree_to_codes(&Some(tree), Vec::new(), BTreeMap::new()))
+        Self(tree_to_codes(&Some(tree), Default::default(), Default::default()))
     }
     pub fn encode(&self, data: &str) -> Result<Vec<u8>, CharDNEinDict> {
         let mut nbits = 0;
@@ -162,12 +161,8 @@ impl Codec {
         Ok(ret)
     }
     pub fn decode(&self, data: Vec<u8>) -> String {
-        fn reverse(h: &BTreeMap<char, Vec<u8>>) -> BTreeMap<Vec<u8>, char> {
-            let mut ret = BTreeMap::new();
-            h.iter().for_each(|(k, v)| {
-                ret.insert(v.clone(), *k);
-            });
-            ret
+        fn reverse(h: &Dictionary) -> DictionaryRev{
+            From::from(h)
         }
         let code = reverse(&self.0);
         let mut temp = Vec::<u8>::new();
