@@ -1,5 +1,7 @@
 #![feature(test)]
+#![feature(const_in_array_repeat_expressions)]
 extern crate test;
+
 use huffman_codec::Codec;
 use std::fs;
 use test::Bencher;

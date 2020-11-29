@@ -1,4 +1,5 @@
 #![no_std]
+#![feature(const_in_array_repeat_expressions)]
 extern crate alloc;
 use alloc::{
     collections::{binary_heap::BinaryHeap, BTreeMap},
@@ -23,14 +24,26 @@ pub fn frequency(n: &str) -> BTreeMap<char, i32> {
 
 struct Dictionary {
     /* currently a vec must be used because Option<Vec<u8>> doesnt impliment copy */
+    #[cfg(not(feature = "nightly-features"))]
     ascii: Vec<Option<Vec<u8>>>,
+    #[cfg(feature = "nightly-features")]
+    ascii: [Option<Vec<u8>>; 128],
+
     non_ascii: BTreeMap<char, Vec<u8>>,
 }
 
 impl Dictionary {
+    #[cfg(not(feature = "nightly-features"))]
     fn new() -> Self {
         Self {
             ascii: (0..128).map(|_| None).collect(),
+            non_ascii: Default::default(),
+        }
+    }
+    #[cfg(feature = "nightly-features")]
+    fn new() -> Self {
+        Self {
+            ascii: [None; 128],
             non_ascii: Default::default(),
         }
     }
@@ -51,6 +64,16 @@ impl Dictionary {
         } else {
             self.non_ascii.get(k)
         }
+    }
+    fn iter(&self) -> impl Iterator<Item = (char, &'_ Vec<u8>)> + '_ {
+        self.ascii
+            .iter()
+            .enumerate()
+            .filter_map(|(index, x)| match *x {
+                Some(ref v) => Some((index as u8 as char, v)),
+                None => None,
+            })
+            .chain(self.non_ascii.iter().map(|(k, v)| (*k, v)))
     }
 }
 
@@ -75,21 +98,15 @@ impl DictionaryRev {
     fn get(&self, k: &[u8]) -> Option<&char> {
         self.non_ascii.get(k)
     }
+    fn iter(&self) -> impl Iterator + '_ {
+        self.non_ascii.iter()
+    }
 }
 
 impl From<&Dictionary> for DictionaryRev {
     fn from(d: &Dictionary) -> Self {
         Self {
-            non_ascii: d
-                .ascii
-                .iter()
-                .enumerate()
-                .filter_map(|(index, x)| match x {
-                    Some(v) => Some((v.clone(), index as u8 as char)),
-                    None => None,
-                })
-                .chain(d.non_ascii.iter().map(|(k, v)| (v.clone(), *k)))
-                .collect(),
+            non_ascii: d.iter().map(|(k, v)| (v.clone(), k)).collect(),
         }
     }
 }
@@ -137,7 +154,11 @@ impl Codec {
         let f_map = frequency(s);
         let heap = map_to_heap(f_map);
         let tree = heap_to_tree(heap);
-        Self(tree_to_codes(&Some(tree), Default::default(), Default::default()))
+        Self(tree_to_codes(
+            &Some(tree),
+            Default::default(),
+            Default::default(),
+        ))
     }
     pub fn encode(&self, data: &str) -> Result<Vec<u8>, CharDNEinDict> {
         let mut nbits = 0;
@@ -161,7 +182,7 @@ impl Codec {
         Ok(ret)
     }
     pub fn decode(&self, data: Vec<u8>) -> String {
-        fn reverse(h: &Dictionary) -> DictionaryRev{
+        fn reverse(h: &Dictionary) -> DictionaryRev {
             From::from(h)
         }
         let code = reverse(&self.0);
