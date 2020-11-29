@@ -58,11 +58,10 @@ fn medium_decode(b: &mut Bencher) {
 }
 
 #[test]
-fn medium_encode_decode_test(){
+fn medium_encode_decode_test() {
     let data = read_testfile(MEDIUMFILE).unwrap();
     let encoder = Codec::new(&data);
     let encoded = encoder.encode(&data).unwrap();
     let decoded = encoder.decode(encoded);
-    assert_eq!(data , decoded)
+    assert_eq!(data, decoded)
 }
-
