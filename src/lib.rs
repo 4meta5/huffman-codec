@@ -163,16 +163,12 @@ impl Codec {
     where
         I: Iterator<Item = u8>,
     {
-        let mut rmap: Vec<(&[u8] , char)> = self.0.iter().map(|(k , v)|{
-            (v.as_slice() , k)
-        }).collect();
-        rmap.sort_unstable_by_key(|(k , _)|{
-            *k
-        });
+        let mut rmap: Vec<(&[u8], char)> = self.0.iter().map(|(k, v)| (v.as_slice(), k)).collect();
+        rmap.sort_unstable_by_key(|(k, _)| *k);
         #[inline(always)]
-        fn binfind(map: &[(&[u8] , char)] , key: &[u8]) -> Option<char>{
-            match map.binary_search_by_key(&key , |(k , _)| k){
-                Ok(index) => Some(unsafe {map.get_unchecked(index).1 }),
+        fn binfind(map: &[(&[u8], char)], key: &[u8]) -> Option<char> {
+            match map.binary_search_by_key(&key, |(k, _)| k) {
+                Ok(index) => Some(unsafe { map.get_unchecked(index).1 }),
                 Err(_) => None,
             }
         }
@@ -189,7 +185,7 @@ impl Codec {
         };
         ret.extend(it.filter_map(|b| {
             temp.push(b);
-            if let Some(c) = binfind(rmap.as_slice() , &temp) {
+            if let Some(c) = binfind(rmap.as_slice(), &temp) {
                 temp.clear();
                 Some(c)
             } else {
@@ -198,6 +194,7 @@ impl Codec {
         }));
         ret
     }
+    /* this function should take a &[u8] */
     pub fn decode(&self, data: Vec<u8>) -> String {
         self.decode_iterator(data.iter().copied())
     }
