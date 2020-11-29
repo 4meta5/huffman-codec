@@ -23,7 +23,7 @@ pub fn frequency(n: &str) -> BTreeMap<char, i32> {
 }
 
 struct Dictionary {
-    /* currently a vec must be used because Option<Vec<u8>> doesnt impliment copy */
+    /* currently a vec must be used because Option<Vec<u8>> doesnt implement copy */
     #[cfg(not(feature = "nightly-features"))]
     ascii: Vec<Option<Vec<u8>>>,
     #[cfg(feature = "nightly-features")]
@@ -33,16 +33,11 @@ struct Dictionary {
 }
 
 impl Dictionary {
-    #[cfg(not(feature = "nightly-features"))]
     fn new() -> Self {
         Self {
+            #[cfg(not(feature = "nightly-features"))]
             ascii: (0..128).map(|_| None).collect(),
-            non_ascii: Default::default(),
-        }
-    }
-    #[cfg(feature = "nightly-features")]
-    fn new() -> Self {
-        Self {
+            #[cfg(feature = "nightly-features")]
             ascii: [None; 128],
             non_ascii: Default::default(),
         }
@@ -250,13 +245,22 @@ impl Tree {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct CharDNEinDict;
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
+    #[test]
+    fn expected_encode_err() {
+        let a = "abcdefghijklmnopqrstuvwxy";
+
+        let a1 = "z";
+        let codec = Codec::new(a);
+        let encoded = codec.encode(a1);
+        assert_eq!(encoded, Err(CharDNEinDict));
+    }
     #[test]
     fn frequency_works() {
         let a = "aaaabbbcccddddabababa";
@@ -270,7 +274,6 @@ mod tests {
 
         assert_eq!(res_fn, res);
     }
-
     #[test]
     fn decoding_works() {
         let a = "aaaabbbcccddddaaabababr";
