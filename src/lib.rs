@@ -151,7 +151,7 @@ impl Codec {
             let v = self
                 .0
                 .get(&c)
-                .expect("tried for existance in first loop above");
+                .expect("tried for existence in first loop above");
             ret.extend(v.iter());
         });
         Ok(ret)
