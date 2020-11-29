@@ -56,3 +56,13 @@ fn medium_decode(b: &mut Bencher) {
         black_box(decoder.decode(black_box(data_to_decode.clone())));
     })
 }
+
+#[test]
+fn medium_encode_decode_test(){
+    let data = read_testfile(MEDIUMFILE).unwrap();
+    let encoder = Codec::new(&data);
+    let encoded = encoder.encode(&data).unwrap();
+    let decoded = encoder.decode(encoded);
+    assert_eq!(data , decoded)
+}
+

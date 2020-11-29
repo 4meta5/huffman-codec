@@ -83,34 +83,6 @@ impl Default for Dictionary {
     }
 }
 
-#[derive(Default)]
-struct DictionaryRev {
-    non_ascii: BTreeMap<Vec<u8>, char>,
-}
-
-impl DictionaryRev {
-    fn new() -> Self {
-        Default::default()
-    }
-    fn insert(&mut self, k: Vec<u8>, v: char) {
-        self.non_ascii.insert(k, v);
-    }
-    fn get(&self, k: &[u8]) -> Option<&char> {
-        self.non_ascii.get(k)
-    }
-    fn iter(&self) -> impl Iterator + '_ {
-        self.non_ascii.iter()
-    }
-}
-
-impl From<&Dictionary> for DictionaryRev {
-    fn from(d: &Dictionary) -> Self {
-        Self {
-            non_ascii: d.iter().map(|(k, v)| (v.clone(), k)).collect(),
-        }
-    }
-}
-
 pub struct Codec(Dictionary);
 
 impl Codec {
@@ -160,42 +132,62 @@ impl Codec {
             Default::default(),
         ))
     }
-    pub fn encode(&self, data: &str) -> Result<Vec<u8>, CharDNEinDict> {
+    pub fn encode_iterator<I>(&self, it: I) -> Result<Vec<u8>, CharDNEinDict>
+    where
+        I: Iterator<Item = char> + Clone,
+    {
         let mut nbits = 0;
-        data.chars()
-            .try_for_each(|c| -> Result<(), CharDNEinDict> {
-                if let Some(code) = self.0.get(&c) {
-                    nbits += code.len();
-                    Ok(())
-                } else {
-                    Err(CharDNEinDict)
-                }
-            })?;
+        let mut it_pass1 = it.clone();
+        it_pass1.try_for_each(|c| -> Result<(), CharDNEinDict> {
+            if let Some(code) = self.0.get(&c) {
+                nbits += code.len();
+                Ok(())
+            } else {
+                Err(CharDNEinDict)
+            }
+        })?;
         let mut ret = Vec::<u8>::with_capacity(nbits);
-        data.chars().for_each(|c| {
+        it.for_each(|c| {
             let v = self
                 .0
                 .get(&c)
-                .expect("checked existence in first for loop above; qed");
-            v.iter().for_each(|bit| ret.push(*bit));
+                .expect("tried for existance in first loop above");
+            ret.extend(v.iter());
         });
         Ok(ret)
     }
-    pub fn decode(&self, data: Vec<u8>) -> String {
-        fn reverse(h: &Dictionary) -> DictionaryRev {
-            From::from(h)
-        }
-        let code = reverse(&self.0);
+    pub fn encode(&self, data: &str) -> Result<Vec<u8>, CharDNEinDict> {
+        self.encode_iterator(data.chars())
+    }
+    pub fn decode_iterator<I>(&self, it: I) -> String
+    where
+        I: Iterator<Item = u8>,
+    {
+        let rmap: BTreeMap<&[u8], char> = self.0.iter().map(|(k, v)| (v.as_slice(), k)).collect();
+
         let mut temp = Vec::<u8>::new();
-        let mut ret = String::new();
-        data.into_iter().for_each(|b| {
-            temp.push(b);
-            if let Some(c) = code.get(&temp) {
-                ret.push(*c);
-                temp.clear();
+        let mut ret: String = if let (start, Some(end)) = it.size_hint() {
+            if let Some(size) = end.checked_sub(start) {
+                String::with_capacity(size)
+            } else {
+                String::new()
             }
-        });
+        } else {
+            String::new()
+        };
+        ret.extend(it.filter_map(|b| {
+            temp.push(b);
+            if let Some(c) = rmap.get(temp.as_mut_slice()) {
+                temp.clear();
+                Some(c)
+            } else {
+                None
+            }
+        }));
         ret
+    }
+    pub fn decode(&self, data: Vec<u8>) -> String {
+        self.decode_iterator(data.iter().copied())
     }
 }
 
@@ -289,5 +281,15 @@ mod tests {
 
         let a3 = "x";
         assert!(codec.encode(a3).is_err());
+    }
+    #[test]
+    fn iter_works() {
+        let dict = "123456789";
+        let data =
+            "123456789123456789123456789123456789123456789123456789123456789123456789123456789";
+        let enc = Codec::new(dict);
+        let encoded = enc.encode_iterator(data.chars()).unwrap();
+        let decoded = enc.decode_iterator(encoded.iter().copied());
+        assert_eq!(data, decoded.as_str())
     }
 }
