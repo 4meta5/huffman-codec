@@ -163,7 +163,19 @@ impl Codec {
     where
         I: Iterator<Item = u8>,
     {
-        let rmap: BTreeMap<&[u8], char> = self.0.iter().map(|(k, v)| (v.as_slice(), k)).collect();
+        let mut rmap: Vec<(&[u8] , char)> = self.0.iter().map(|(k , v)|{
+            (v.as_slice() , k)
+        }).collect();
+        rmap.sort_unstable_by_key(|(k , _)|{
+            *k
+        });
+        #[inline(always)]
+        fn binfind(map: &[(&[u8] , char)] , key: &[u8]) -> Option<char>{
+            match map.binary_search_by_key(&key , |(k , _)| k){
+                Ok(index) => Some(unsafe {map.get_unchecked(index).1 }),
+                Err(_) => None,
+            }
+        }
 
         let mut temp = Vec::<u8>::new();
         let mut ret: String = if let (start, Some(end)) = it.size_hint() {
@@ -177,7 +189,7 @@ impl Codec {
         };
         ret.extend(it.filter_map(|b| {
             temp.push(b);
-            if let Some(c) = rmap.get(temp.as_mut_slice()) {
+            if let Some(c) = binfind(rmap.as_slice() , &temp) {
                 temp.clear();
                 Some(c)
             } else {
