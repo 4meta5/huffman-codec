@@ -1,4 +1,5 @@
 #![no_std]
+#![feature(const_in_array_repeat_expressions)]
 extern crate alloc;
 use alloc::{
     collections::{binary_heap::BinaryHeap, BTreeMap},
@@ -21,7 +22,68 @@ pub fn frequency(n: &str) -> BTreeMap<char, i32> {
     output
 }
 
-pub struct Codec(pub BTreeMap<char, Vec<u8>>);
+struct Dictionary {
+    /* currently a vec must be used because Option<Vec<u8>> doesnt impliment copy */
+    #[cfg(not(feature = "nightly-features"))]
+    ascii: Vec<Option<Vec<u8>>>,
+    #[cfg(feature = "nightly-features")]
+    ascii: [Option<Vec<u8>>; 128],
+
+    non_ascii: BTreeMap<char, Vec<u8>>,
+}
+
+impl Dictionary {
+    #[cfg(not(feature = "nightly-features"))]
+    fn new() -> Self {
+        Self {
+            ascii: (0..128).map(|_| None).collect(),
+            non_ascii: Default::default(),
+        }
+    }
+    #[cfg(feature = "nightly-features")]
+    fn new() -> Self {
+        Self {
+            ascii: [None; 128],
+            non_ascii: Default::default(),
+        }
+    }
+    fn insert(&mut self, k: char, v: Vec<u8>) {
+        let c = k as usize;
+        if c < 128 {
+            unsafe {
+                *self.ascii.get_unchecked_mut(c) = Some(v);
+            }
+        } else {
+            self.non_ascii.insert(k, v);
+        }
+    }
+    fn get(&self, k: &char) -> Option<&Vec<u8>> {
+        let c = *k as usize;
+        if c < 128 {
+            unsafe { self.ascii.get_unchecked(c).as_ref() }
+        } else {
+            self.non_ascii.get(k)
+        }
+    }
+    fn iter(&self) -> impl Iterator<Item = (char, &'_ Vec<u8>)> + '_ {
+        self.ascii
+            .iter()
+            .enumerate()
+            .filter_map(|(index, x)| match *x {
+                Some(ref v) => Some((index as u8 as char, v)),
+                None => None,
+            })
+            .chain(self.non_ascii.iter().map(|(k, v)| (*k, v)))
+    }
+}
+
+impl Default for Dictionary {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+pub struct Codec(Dictionary);
 
 impl Codec {
     pub fn new(s: &str) -> Self {
@@ -43,8 +105,8 @@ impl Codec {
         fn tree_to_codes(
             root: &Option<Rc<Tree>>,
             prefix: Vec<u8>,
-            mut map: BTreeMap<char, Vec<u8>>,
-        ) -> BTreeMap<char, Vec<u8>> {
+            mut map: Dictionary,
+        ) -> Dictionary {
             if let Some(ref tree) = *root {
                 match tree.value {
                     Some(t) => {
@@ -64,48 +126,77 @@ impl Codec {
         let f_map = frequency(s);
         let heap = map_to_heap(f_map);
         let tree = heap_to_tree(heap);
-        Self(tree_to_codes(&Some(tree), Vec::new(), BTreeMap::new()))
+        Self(tree_to_codes(
+            &Some(tree),
+            Default::default(),
+            Default::default(),
+        ))
     }
-    pub fn encode(&self, data: &str) -> Result<Vec<u8>, CharDNEinDict> {
+    pub fn encode_iterator<I>(&self, it: I) -> Result<Vec<u8>, CharDNEinDict>
+    where
+        I: Iterator<Item = char> + Clone,
+    {
         let mut nbits = 0;
-        data.chars()
-            .try_for_each(|c| -> Result<(), CharDNEinDict> {
-                if let Some(code) = self.0.get(&c) {
-                    nbits += code.len();
-                    Ok(())
-                } else {
-                    Err(CharDNEinDict)
-                }
-            })?;
+        let mut it_pass1 = it.clone();
+        it_pass1.try_for_each(|c| -> Result<(), CharDNEinDict> {
+            if let Some(code) = self.0.get(&c) {
+                nbits += code.len();
+                Ok(())
+            } else {
+                Err(CharDNEinDict)
+            }
+        })?;
         let mut ret = Vec::<u8>::with_capacity(nbits);
-        data.chars().for_each(|c| {
+        it.for_each(|c| {
             let v = self
                 .0
                 .get(&c)
-                .expect("checked existence in first for loop above; qed");
-            v.iter().for_each(|bit| ret.push(*bit));
+                .expect("tried for existence in first loop above");
+            ret.extend(v.iter());
         });
         Ok(ret)
     }
-    pub fn decode(&self, data: Vec<u8>) -> String {
-        fn reverse(h: &BTreeMap<char, Vec<u8>>) -> BTreeMap<Vec<u8>, char> {
-            let mut ret = BTreeMap::new();
-            h.iter().for_each(|(k, v)| {
-                ret.insert(v.clone(), *k);
-            });
-            ret
-        }
-        let code = reverse(&self.0);
-        let mut temp = Vec::<u8>::new();
-        let mut ret = String::new();
-        data.into_iter().for_each(|b| {
-            temp.push(b);
-            if let Some(c) = code.get(&temp) {
-                ret.push(*c);
-                temp.clear();
+    pub fn encode(&self, data: &str) -> Result<Vec<u8>, CharDNEinDict> {
+        self.encode_iterator(data.chars())
+    }
+    pub fn decode_iterator<I>(&self, it: I) -> String
+    where
+        I: Iterator<Item = u8>,
+    {
+        let mut rmap: Vec<(&[u8], char)> = self.0.iter().map(|(k, v)| (v.as_slice(), k)).collect();
+        rmap.sort_unstable_by_key(|(k, _)| *k);
+        #[inline(always)]
+        fn binfind(map: &[(&[u8], char)], key: &[u8]) -> Option<char> {
+            match map.binary_search_by_key(&key, |(k, _)| k) {
+                Ok(index) => Some(unsafe { map.get_unchecked(index).1 }),
+                Err(_) => None,
             }
-        });
+        }
+
+        let mut temp = Vec::<u8>::new();
+        let mut ret: String = if let (start, Some(end)) = it.size_hint() {
+            if let Some(size) = end.checked_sub(start) {
+                String::with_capacity(size)
+            } else {
+                String::new()
+            }
+        } else {
+            String::new()
+        };
+        ret.extend(it.filter_map(|b| {
+            temp.push(b);
+            if let Some(c) = binfind(rmap.as_slice(), &temp) {
+                temp.clear();
+                Some(c)
+            } else {
+                None
+            }
+        }));
         ret
+    }
+    /* this function should take a &[u8] */
+    pub fn decode(&self, data: Vec<u8>) -> String {
+        self.decode_iterator(data.iter().copied())
     }
 }
 
@@ -199,5 +290,15 @@ mod tests {
 
         let a3 = "x";
         assert!(codec.encode(a3).is_err());
+    }
+    #[test]
+    fn iter_works() {
+        let dict = "123456789";
+        let data =
+            "123456789123456789123456789123456789123456789123456789123456789123456789123456789";
+        let enc = Codec::new(dict);
+        let encoded = enc.encode_iterator(data.chars()).unwrap();
+        let decoded = enc.decode_iterator(encoded.iter().copied());
+        assert_eq!(data, decoded.as_str())
     }
 }
