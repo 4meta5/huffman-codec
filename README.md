@@ -7,7 +7,19 @@ Lossless data compression via [Huffman Codes](https://en.wikipedia.org/wiki/Huff
 ![Build](https://github.com/4meta5/huffman-codec/workflows/Build/badge.svg)
 [![](https://meritbadge.herokuapp.com/huffman-codec)](https://crates.io/crates/huffman-codec)
 
-~200 loc with no dependencies, `no_std`
+~300 loc with no dependencies, `no_std`
+
+### Benchmarks
+
+The implementation stores [Ascii](https://www.asciitable.com/) representations in [`Vec`](https://doc.rust-lang.org/alloc/vec/struct.Vec.html), and non-ascii codes in a [`BTreeMap`](https://doc.rust-lang.org/alloc/collections/btree_map/struct.BTreeMap.html). Benchmarks on `2.3 GHz 8-Core Intel Core i9` processor measure vector access as ~5x faster than `BTreeMap` for encode and decode.
+
+```
+% cargo bench
+test medium_decode ... bench:   1,047,881 ns/iter (+/- 82,172)
+test medium_encode ... bench:     218,537 ns/iter (+/- 22,107)
+test small_decode  ... bench:     202,586 ns/iter (+/- 14,843)
+test small_encode  ... bench:      44,425 ns/iter (+/- 9,182)
+```
 
 ## Prolog
 
