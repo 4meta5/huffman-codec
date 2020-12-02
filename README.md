@@ -11,7 +11,7 @@ Lossless data compression via [Huffman Codes](https://en.wikipedia.org/wiki/Huff
 
 ### Benchmarks
 
-The implementation stores [Ascii](https://www.asciitable.com/) representations in [`Vec`](https://doc.rust-lang.org/alloc/vec/struct.Vec.html), and non-ascii codes in a [`BTreeMap`](https://doc.rust-lang.org/alloc/collections/btree_map/struct.BTreeMap.html). Benchmarks on `2.3 GHz 8-Core Intel Core i9` processor measure vector access as ~5x faster than `BTreeMap` for encode and decode.
+The implementation stores [Ascii](https://www.asciitable.com/) representations in [`Vec`](https://doc.rust-lang.org/alloc/vec/struct.Vec.html), and non-ascii codes in a [`BTreeMap`](https://doc.rust-lang.org/alloc/collections/btree_map/struct.BTreeMap.html). Benchmarks on `2.3 GHz 8-Core Intel Core i9` processor measure `encode` as 5x faster than `decode`.
 
 ```
 % cargo bench
