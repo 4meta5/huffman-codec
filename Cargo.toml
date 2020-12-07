@@ -7,6 +7,9 @@ license = "Unlicense"
 repository = "https://github.com/4meta5/huffman-codec"
 description = "no_std codec for lossless compression via huffman codes"
 
+[profile.release]
+debug = true
+
 [features]
 default = []
 nightly-features = []
