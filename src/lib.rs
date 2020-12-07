@@ -127,36 +127,28 @@ impl Codec {
             Default::default(),
         ))
     }
-    pub fn encode_iterator<I>(&self, it: I) -> Result<Vec<u8>, CharDNEinDict>
+    pub fn encode_iterator<I>(&self, mut it: I) -> Result<Vec<u8>, CharDNEinDict>
     where
-        I: Iterator<Item = char> + Clone,
+        I: Iterator<Item = char>,
     {
-        let mut nbits = 0;
-        let mut it_pass1 = it.clone();
-        it_pass1.try_for_each(|c| -> Result<(), CharDNEinDict> {
-            if let Some(code) = self.0.get(&c) {
-                nbits += code.len();
-                Ok(())
-            } else {
-                Err(CharDNEinDict)
+        let mut ret = Vec::<u8>::new();
+        it.try_for_each(|c| -> Result<(), CharDNEinDict> {
+            match self.0.get(&c) {
+                Some(v) => {
+                    ret.extend(v.iter());
+                    Ok(())
+                }
+                None => Err(CharDNEinDict),
             }
         })?;
-        let mut ret = Vec::<u8>::with_capacity(nbits);
-        it.for_each(|c| {
-            let v = self
-                .0
-                .get(&c)
-                .expect("tried for existence in first loop above");
-            ret.extend(v.iter());
-        });
         Ok(ret)
     }
     pub fn encode(&self, data: &str) -> Result<Vec<u8>, CharDNEinDict> {
         self.encode_iterator(data.chars())
     }
-    pub fn decode_iterator<I>(&self, it: I) -> String
+    pub fn decode_iterator<'a , I>(&self, it: I) -> String
     where
-        I: Iterator<Item = u8>,
+        I: Iterator<Item = &'a u8>,
     {
         let mut rmap: Vec<(&[u8], char)> = self.0.iter().map(|(k, v)| (v.as_slice(), k)).collect();
         rmap.sort_unstable_by_key(|(k, _)| *k);
@@ -168,30 +160,20 @@ impl Codec {
             }
         }
 
-        let mut temp = Vec::<u8>::new();
-        let mut ret: String = if let (start, Some(end)) = it.size_hint() {
-            if let Some(size) = end.checked_sub(start) {
-                String::with_capacity(size)
-            } else {
-                String::new()
-            }
-        } else {
-            String::new()
-        };
-        ret.extend(it.filter_map(|b| {
-            temp.push(b);
+        let mut temp = Vec::<u8>::with_capacity(16);
+        it.filter_map(|b| {
+            temp.push(*b);
             if let Some(c) = binfind(rmap.as_slice(), &temp) {
                 temp.clear();
                 Some(c)
             } else {
                 None
             }
-        }));
-        ret
+        }).collect()
     }
     /* this function should take a &[u8] */
-    pub fn decode(&self, data: Vec<u8>) -> String {
-        self.decode_iterator(data.iter().copied())
+    pub fn decode(&self, data: &[u8]) -> String {
+        self.decode_iterator(data.iter())
     }
 }
 
@@ -280,14 +262,14 @@ mod tests {
         let a1 = "abracadabra";
         let codec = Codec::new(a);
         let encoded = codec.encode(a1).unwrap();
-        let decoded = codec.decode(encoded);
+        let decoded = codec.decode(&encoded);
 
         assert_eq!(a1, decoded);
 
         let a2 = "abcdr";
 
         let encoded = codec.encode(a2).unwrap();
-        let decoded = codec.decode(encoded);
+        let decoded = codec.decode(&encoded);
 
         assert_eq!(a2, decoded);
 
@@ -301,7 +283,7 @@ mod tests {
             "123456789123456789123456789123456789123456789123456789123456789123456789123456789";
         let enc = Codec::new(dict);
         let encoded = enc.encode_iterator(data.chars()).unwrap();
-        let decoded = enc.decode_iterator(encoded.iter().copied());
+        let decoded = enc.decode_iterator(encoded.iter());
         assert_eq!(data, decoded.as_str())
     }
 }
