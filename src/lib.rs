@@ -146,7 +146,7 @@ impl Codec {
     pub fn encode(&self, data: &str) -> Result<Vec<u8>, CharDNEinDict> {
         self.encode_iterator(data.chars())
     }
-    pub fn decode_iterator<'a , I>(&self, it: I) -> String
+    pub fn decode_iterator<'a, I>(&self, it: I) -> String
     where
         I: Iterator<Item = &'a u8>,
     {
@@ -169,7 +169,8 @@ impl Codec {
             } else {
                 None
             }
-        }).collect()
+        })
+        .collect()
     }
     /* this function should take a &[u8] */
     pub fn decode(&self, data: &[u8]) -> String {
