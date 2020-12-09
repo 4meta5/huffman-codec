@@ -11,14 +11,14 @@ Lossless data compression via [Huffman Codes](https://en.wikipedia.org/wiki/Huff
 
 ### Benchmarks
 
-The implementation stores [Ascii](https://www.asciitable.com/) representations in [`Vec`](https://doc.rust-lang.org/alloc/vec/struct.Vec.html), and non-ascii codes in a [`BTreeMap`](https://doc.rust-lang.org/alloc/collections/btree_map/struct.BTreeMap.html). Benchmarks on `2.3 GHz 8-Core Intel Core i9` processor measure `encode` as 5x faster than `decode`.
+The implementation stores [Ascii](https://www.asciitable.com/) representations in [`Vec`](https://doc.rust-lang.org/alloc/vec/struct.Vec.html), and non-ascii codes in a [`BTreeMap`](https://doc.rust-lang.org/alloc/collections/btree_map/struct.BTreeMap.html). Benchmarks on `2.3 GHz 8-Core Intel Core i9` processor:
 
 ```
 % cargo bench
-test medium_decode ... bench:   1,047,881 ns/iter (+/- 82,172)
-test medium_encode ... bench:     218,537 ns/iter (+/- 22,107)
-test small_decode  ... bench:     202,586 ns/iter (+/- 14,843)
-test small_encode  ... bench:      44,425 ns/iter (+/- 9,182)
+test medium_decode ... bench:   1,000,752 ns/iter (+/- 82,200)
+test medium_encode ... bench:     810,993 ns/iter (+/- 50,708)
+test small_decode  ... bench:     191,527 ns/iter (+/- 30,319)
+test small_encode  ... bench:      46,148 ns/iter (+/- 4,768)
 ```
 
 ## Prolog
