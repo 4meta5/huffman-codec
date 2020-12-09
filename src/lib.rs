@@ -172,7 +172,6 @@ impl Codec {
         })
         .collect()
     }
-    /* this function should take a &[u8] */
     pub fn decode(&self, data: &[u8]) -> String {
         self.decode_iterator(data.iter())
     }
