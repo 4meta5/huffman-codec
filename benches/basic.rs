@@ -36,7 +36,7 @@ fn small_decode(b: &mut Bencher) {
     let decoder = Codec::new(&data);
     let data_to_decode: Vec<u8> = data.into();
     b.iter(|| {
-        black_box(decoder.decode(black_box(data_to_decode.clone())));
+        black_box(decoder.decode(black_box(&data_to_decode)));
     })
 }
 
@@ -53,7 +53,7 @@ fn medium_decode(b: &mut Bencher) {
     let decoder = Codec::new(&data);
     let data_to_decode: Vec<u8> = data.into();
     b.iter(|| {
-        black_box(decoder.decode(black_box(data_to_decode.clone())));
+        black_box(decoder.decode(black_box(&data_to_decode)));
     })
 }
 
@@ -62,6 +62,6 @@ fn medium_encode_decode_test() {
     let data = read_testfile(MEDIUMFILE).unwrap();
     let encoder = Codec::new(&data);
     let encoded = encoder.encode(&data).unwrap();
-    let decoded = encoder.decode(encoded);
+    let decoded = encoder.decode(&encoded);
     assert_eq!(data, decoded)
 }
